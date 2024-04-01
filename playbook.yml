@@ -1,0 +1,76 @@
+---
+
+- name: Install Updates (Ubuntu)
+  hosts: all
+  become: true
+  tasks:
+    - name: Install updates (Ubuntu)
+      tags: always
+      apt:
+        upgrade: dist
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu" 
+
+    - name: Install Updates (CentOS)
+      tags: always
+      dnf:
+        update_only: yes
+        update_cache: yes
+      when: ansible_distribution == "CentOS"
+
+- name: Configure Firewall (Ubuntu)
+  hosts: localhost
+  become: true
+  vars: 
+    firewall_rules:
+      - { name: 'Allow SSH', rule: 'port 22/tcp', state: 'present'}
+      - { name: 'Allow HTTP', rule: 'port 80/tcp', state: 'present'}
+      - { name: 'Allow HTTPS', rule: 'port 443/tcp', state: 'present'}
+  tasks:
+    - name: Install Firewall 
+      apt:
+        name: ufw
+        state: present
+      when: ansible_distribution == "Ubuntu"
+    
+    - name: Enable Firewall
+      service: 
+        name: ufw
+        state: started
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Configure Firewall Rules
+      ufw:
+        rule: allow
+        state: enabled
+      when: ansible_distribution == "Ubuntu"
+
+- name: Configure Firewall (CentOS)
+  hosts: centos
+  become: true
+  vars:
+    firewall_rules:
+      - { name: 'Allow SSH', rule: 'port22/tcp', state: 'present'}
+      - { name: 'Allow HTTP', rule: 'port80/tcp', state: 'present'}
+      - { name: 'Allow HTTPS', rule: 'port 443/tcp', state: 'present'}
+
+  tasks:
+    - name: Install Firewall
+      dnf: 
+        name: firewalld
+        state: present
+      when: ansible_distribution == "CentOS"
+
+    - name: Enable Firewall
+      service:
+        name: firewalld
+        state: started
+      when: ansible_distribution == "CentOS"
+
+    - name: Configure Firewall Rules
+      firewalld:
+        zone: public
+        service: ssh
+        state: enabled
+      when: ansible_distribution == "CentOS"
+
